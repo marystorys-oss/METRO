@@ -37,8 +37,24 @@
         th { background: #f8f9fa; }
 
         /* 📄 PDF 한 장에 맞추기 위한 여백 및 크기 수정 */
-        #pdf-template { display: none; padding: 15px 30px; background: white; width: 750px; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; }
-        #pdf-template h1 { text-align: center; color: #1e272e; margin: 10px 0; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        #pdf-template { 
+            display: none; 
+            /* 상단 여백을 0으로 줄임 */
+            padding: 0 30px 15px 30px; 
+            background: white; 
+            width: 750px; 
+            font-family: 'Malgun Gothic', sans-serif; 
+            box-sizing: border-box; 
+        }
+        #pdf-template h1 { 
+            text-align: center; 
+            color: #1e272e; 
+            /* 상단 마진을 줄임 */
+            margin: 5px 0 10px 0; 
+            font-size: 24px; 
+            border-bottom: 2px solid #333; 
+            padding-bottom: 10px; 
+        }
         #pdf-template table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 8px; text-align: center; font-size: 14px; }
         #pdf-template .label { background: #f2f2f2; font-weight: bold; width: 20%; }
@@ -46,15 +62,24 @@
         .pdf-photo-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .pdf-photo-item { width: 100%; text-align: center; }
         .pdf-photo-item p { margin: 5px 0; font-weight: bold; font-size: 15px; }
-        /* 🌟 사진 높이를 260px로 줄여 한 장에 쏙 들어가게 조정 🌟 */
-        .pdf-photo-item img { width: 100%; height: 260px; object-fit: contain; border: 1px solid #ddd; background: #fafafa; }
+        /* 🌟 4:3 비율 고정 및 한 장 맞춤 설정 🌟 */
+        .pdf-photo-item img { 
+            width: 80%; /* 너비를 줄여서 높이 공간 확보 */
+            height: auto; /* 높이는 비율에 맞게 자동 조절 */
+            aspect-ratio: 4 / 3; /* 4:3 비율 고정 */
+            object-fit: contain; 
+            border: 1px solid #ddd; 
+            background: #fafafa; 
+            margin: 0 auto; /* 가운데 정렬 */
+            display: block;
+        }
     </style>
 </head>
 <body>
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;">
-    <span>(주)METRO R&S 현장관리 시스템 V3.0</span>
+    <span>(주)METRO R&S 현장관리 시스템 V4.0</span>
 </header>
 
 <div class="container">
@@ -351,9 +376,9 @@
         const element = document.getElementById('pdf-template');
         element.style.display = 'block'; 
 
-        // 🌟 PDF 생성 옵션 수정: 페이지 여백을 줄여 공간 확보
+        // 🌟 PDF 생성 옵션: 상단 여백을 줄여서 한 장에 맞춤
         const opt = {
-            margin: [10, 5, 10, 5], // [상, 우, 하, 좌] 여백 조절
+            margin: [5, 5, 5, 5], // 상하좌우 여백 최소화
             filename: `하자보수완료_${dong}동_${ho}호.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
