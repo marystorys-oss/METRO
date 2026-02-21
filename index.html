@@ -36,23 +36,25 @@
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
-        /* 📄 PDF 출력 전용 숨김 양식 (수정된 부분) */
-        #pdf-template { display: none; padding: 40px; background: white; width: 750px; font-family: 'Malgun Gothic', sans-serif; }
-        #pdf-template table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 12px; text-align: center; }
+        /* 📄 PDF 한 장에 맞추기 위한 여백 및 크기 수정 */
+        #pdf-template { display: none; padding: 15px 30px; background: white; width: 750px; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; }
+        #pdf-template h1 { text-align: center; color: #1e272e; margin: 10px 0; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        #pdf-template table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 8px; text-align: center; font-size: 14px; }
         #pdf-template .label { background: #f2f2f2; font-weight: bold; width: 20%; }
         
-        /* 🌟 세로 배치 핵심 코드 🌟 */
-        .pdf-photo-grid { display: flex; flex-direction: column; gap: 20px; margin-top: 20px; }
+        .pdf-photo-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .pdf-photo-item { width: 100%; text-align: center; }
-        .pdf-photo-item img { width: 100%; height: 350px; object-fit: contain; border: 1px solid #ddd; background: #fafafa; }
+        .pdf-photo-item p { margin: 5px 0; font-weight: bold; font-size: 15px; }
+        /* 🌟 사진 높이를 260px로 줄여 한 장에 쏙 들어가게 조정 🌟 */
+        .pdf-photo-item img { width: 100%; height: 260px; object-fit: contain; border: 1px solid #ddd; background: #fafafa; }
     </style>
 </head>
 <body>
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;">
-    <span>(주)METRO R&S 현장관리 시스템 V2.0</span>
+    <span>(주)METRO R&S 현장관리 시스템 V3.0</span>
 </header>
 
 <div class="container">
@@ -116,8 +118,8 @@
 </div>
 
 <div id="pdf-template">
-    <h1 style="text-align:center; color:#1e272e;">하자보수 작업 완료 보고서</h1>
-    <table style="width:100%; margin-top:20px;">
+    <h1>하자보수 작업 완료 보고서</h1>
+    <table>
         <tr>
             <td class="label">점검일자</td><td id="pdf-date"></td>
             <td class="label">관리번호</td><td id="pdf-no"></td>
@@ -134,16 +136,16 @@
             <td class="label">시공업체</td><td id="pdf-contractor"></td>
         </tr>
         <tr>
-            <td class="label">상세내용</td><td id="pdf-desc" colspan="3" style="text-align:left; height:80px; vertical-align:top;"></td>
+            <td class="label">상세내용</td><td id="pdf-desc" colspan="3" style="text-align:left; height:60px; vertical-align:top;"></td>
         </tr>
     </table>
     <div class="pdf-photo-grid">
         <div class="pdf-photo-item">
-            <p style="font-weight:bold; margin-bottom: 5px; font-size: 16px;">[ 작 업 전 ]</p>
+            <p>[ 작 업 전 ]</p>
             <img id="pdf-img1">
         </div>
         <div class="pdf-photo-item">
-            <p style="font-weight:bold; margin-bottom: 5px; font-size: 16px;">[ 작 업 후 ]</p>
+            <p>[ 작 업 후 ]</p>
             <img id="pdf-img2">
         </div>
     </div>
@@ -349,8 +351,9 @@
         const element = document.getElementById('pdf-template');
         element.style.display = 'block'; 
 
+        // 🌟 PDF 생성 옵션 수정: 페이지 여백을 줄여 공간 확보
         const opt = {
-            margin: 10,
+            margin: [10, 5, 10, 5], // [상, 우, 하, 좌] 여백 조절
             filename: `하자보수완료_${dong}동_${ho}호.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
@@ -364,4 +367,3 @@
 </script>
 </body>
 </html>
-
