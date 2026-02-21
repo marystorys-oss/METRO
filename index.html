@@ -56,17 +56,17 @@
         #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 8px; text-align: center; font-size: 14px; }
         #pdf-template .label { background: #f2f2f2; font-weight: bold; width: 20%; }
         
-        /* 사진 영역 밀림 완벽 차단 */
-        .pdf-photo-grid { display: flex; flex-direction: column; gap: 10px; }
+        /* 사진 영역 밀림 및 비율 찌그러짐 완벽 차단 */
+        .pdf-photo-grid { display: flex; flex-direction: column; gap: 15px; }
         .pdf-photo-item { width: 100%; text-align: center; }
         .pdf-photo-item p { margin: 0 0 5px 0; font-weight: bold; font-size: 15px; }
         
-        /* 🌟 어떤 사진을 넣어도 이 높이(320px)를 절대 넘지 않게 강제 고정 */
+        /* 🌟 핵심: 세로 높이만 고정하고 가로를 자동(auto)으로 두어 4:3 원본 비율 절대 사수! */
         .pdf-photo-item img { 
-            width: 85%; 
-            height: 320px; /* 핵심! 높이 고정으로 2장 모두 1페이지에 들어감 */
-            object-fit: contain; 
-            border: 1px solid #ddd; 
+            height: 330px;     /* A4 1장에 2개가 들어가기 위한 세로 마지노선 길이 */
+            width: auto;       /* 👈 가로가 세로에 맞춰 자동으로 조절됨 (찌그러짐 완전 방지!) */
+            max-width: 100%;   /* 혹시라도 가로로 엄청 긴 사진이 들어와도 페이지를 넘지 않게 방어 */
+            border: 2px solid #ddd; 
             background: #fafafa; 
             margin: 0 auto; 
             display: block; 
@@ -77,7 +77,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 클라우드 시스템 V16.0</span>
+    <span>(주)METRO R&S 클라우드 시스템 V17.0</span>
 </header>
 
 <div class="container">
@@ -318,7 +318,7 @@
             const element = document.getElementById('pdf-template');
             element.style.display = 'block'; 
 
-            // 🌟 렌더링 옵션: A4 사이즈(mm 단위)에 캔버스를 욱여넣어 절대 짤리지 않게 방어
+            // 🌟 PDF 생성 옵션: A4 사이즈(mm 단위)에 캔버스를 욱여넣어 절대 짤리지 않게 방어
             const opt = { 
                 margin: 0, 
                 filename: `보고서.pdf`, 
