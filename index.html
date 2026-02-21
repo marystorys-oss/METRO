@@ -61,7 +61,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 시스템 V17.2</span>
+    <span>(주)METRO R&S 시스템 V17.3</span>
 </header>
 
 <div class="container">
@@ -197,16 +197,36 @@
         fields.forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).classList.remove('filled'); });
     }
 
+    // 🌟 V17.3 핵심 개선: 1번, 2번, 3번 모든 사진을 선택 즉시 다이어트(압축) 시킵니다!
     function view(input, pId, tId) {
         if(input.files && input.files[0]){
+            const file = input.files[0];
             const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = document.getElementById(pId);
-                img.src = e.target.result;
-                img.style.display = 'block';
-                document.getElementById(tId).style.display = 'none';
+            reader.onload = function(e) {
+                const imgObj = new Image();
+                imgObj.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let w = imgObj.width;
+                    let h = imgObj.height;
+                    const MAX_SIZE = 800; // 해상도 800px 강제 제한 (PDF 화질 유지 & 용량 1/20 축소)
+                    
+                    if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } 
+                    else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+                    
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(imgObj, 0, 0, w, h);
+                    
+                    const compressedSrc = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    const img = document.getElementById(pId);
+                    img.src = compressedSrc;
+                    img.style.display = 'block';
+                    document.getElementById(tId).style.display = 'none';
+                };
+                imgObj.src = e.target.result;
             };
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
         }
     }
 
@@ -296,37 +316,17 @@
             element.style.display = 'none'; 
             const base64Data = pdfBase64String.split(',')[1];
 
-            // 🌟 V17.2: 완료확인서 초강력 자동 압축 로직 (이것이 핵심입니다!)
+            // 🌟 f3(완료확인서)는 이미 view 함수에서 압축되었으므로 바로 가져옵니다.
             let certBase64Data = "";
             let certFileName = "";
             const f3 = document.getElementById('f3');
             if (f3.files && f3.files.length > 0) {
-                const certFile = f3.files[0];
-                const ext = certFile.name.split('.').pop() || 'jpg';
+                const ext = f3.files[0].name.split('.').pop() || 'jpg';
                 certFileName = `완료확인서_${pendingData.dong}동_${pendingData.ho}호.${ext}`;
-                
-                certBase64Data = await new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let w = img.width;
-                        let h = img.height;
-                        const MAX_SIZE = 1200; // 해상도 최대 1200px로 제한하여 용량 다이어트
-
-                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } 
-                        else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
-                        
-                        canvas.width = w;
-                        canvas.height = h;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, w, h);
-                        
-                        // 0.8 품질의 가벼운 jpg로 압축하여 데이터 폭발 방지
-                        resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
-                    };
-                    img.onerror = () => reject("이미지 로드 오류");
-                    img.src = URL.createObjectURL(certFile);
-                });
+                const p3Src = document.getElementById('p3').src;
+                if(p3Src && p3Src.includes('base64,')) {
+                    certBase64Data = p3Src.split(',')[1];
+                }
             }
 
             btn.innerText = "⏳ 2/2: 발송 중 (약 5~10초)...";
@@ -336,7 +336,6 @@
             const response = await fetch(MY_GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
             const result = await response.json();
 
-            // 🌟 결과 처리 로직
             if(result.result === 'success') {
                 alert(`✅ 완료!\n1. 구글 시트에 기록되었습니다.\n2. [${email}]로 보고서가 발송되었습니다.`);
                 const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
@@ -353,7 +352,8 @@
                 alert("⚠️ 서버 오류가 발생했습니다.\n" + result.message); 
             }
         } catch(e) { 
-            alert("❌ 인터넷 연결 불안정 또는 데이터 초과 오류입니다.\n(사진 용량을 더 줄여보세요)"); 
+            // 🌟 상세 에러 메시지 알림 추가 (서버 접근 권한 문제인지 파악 가능)
+            alert("❌ 전송 실패!\n원인: " + e.message + "\n\n💡해결 팁: 구글 앱스 스크립트 '배포 관리'에서 액세스 권한이 [모든 사용자]로 되어 있는지 꼭 확인하세요!"); 
         }
 
         btn.innerText = "최종 전송 (기록+이메일)";
