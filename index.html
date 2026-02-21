@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        :root { --primary: #1e272e; --accent: #3498db; --success: #27ae60; --pdf: #e74c3c; --highlight: #e8f6f3; }
+        :root { --primary: #1e272e; --accent: #3498db; --success: #27ae60; --pdf: #e74c3c; --highlight: #e8f6f3; --share: #9b59b6; }
         body { font-family: 'Pretendard', sans-serif; margin: 0; background: #f0f2f5; font-size: 14px; color: #333; padding-bottom: 50px; }
         header { background: var(--primary); color: white; padding: 15px; font-weight: bold; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .container { padding: 10px; max-width: 800px; margin: auto; }
@@ -23,63 +23,37 @@
         .filled { background-color: var(--highlight); border-color: var(--success); } 
         .photo-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
         .photo-box { background: #f8f9fa; height: 100px; display: flex; align-items: center; justify-content: center; border: 2px dashed #cfd8dc; border-radius: 8px; cursor: pointer; position: relative; overflow: hidden; }
-        .photo-box span { font-size: 12px; color: #546e7a; font-weight: bold; }
+        .photo-box span { font-size: 12px; color: #546e7a; font-weight: bold; text-align: center; }
         .preview-img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; }
+        
         .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
-        button { flex: 1; min-width: 100px; padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
-        .btn-save { background: var(--success); }
-        .btn-pdf { background: var(--pdf); }
-        .btn-send { background: #e67e22; }
+        button { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 15px; }
+        .btn-save { background: var(--success); flex: 1; min-width: 100px; }
+        .btn-send { background: var(--share); flex: 2; font-size: 16px; } /* 전송 및 공유 버튼 강조 */
+        
         #search-box { width: 100%; border: 2px solid var(--accent); margin-bottom: 10px; padding: 10px; border-radius: 6px; }
         .table-wrapper { overflow-x: auto; border-radius: 6px; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; min-width: 500px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
-        /* 📄 PDF 한 장에 맞추기 위한 여백 및 크기 수정 */
-        #pdf-template { 
-            display: none; 
-            /* 상단 여백을 0으로 줄임 */
-            padding: 0 30px 5px 30px; 
-            background: white; 
-            width: 750px; 
-            font-family: 'Malgun Gothic', sans-serif; 
-            box-sizing: border-box; 
-        }
-        #pdf-template h1 { 
-            text-align: center; 
-            color: #1e272e; 
-            /* 상단 마진을 줄임 */
-            margin: 5px 0 10px 0; 
-            font-size: 24px; 
-            border-bottom: 2px solid #333; 
-            padding-bottom: 10px; 
-        }
+        /* 📄 PDF 전용 숨김 양식 */
+        #pdf-template { display: none; padding: 0 30px 15px 30px; background: white; width: 750px; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; }
+        #pdf-template h1 { text-align: center; color: #1e272e; margin: 5px 0 10px 0; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; }
         #pdf-template table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 8px; text-align: center; font-size: 14px; }
         #pdf-template .label { background: #f2f2f2; font-weight: bold; width: 20%; }
-        
         .pdf-photo-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .pdf-photo-item { width: 100%; text-align: center; }
         .pdf-photo-item p { margin: 5px 0; font-weight: bold; font-size: 15px; }
-        /* 🌟 4:3 비율 고정 및 한 장 맞춤 설정 🌟 */
-        .pdf-photo-item img { 
-            width: 55%; /* 너비를 줄여서 높이 공간 확보 */
-            height: auto; /* 높이는 비율에 맞게 자동 조절 */
-            aspect-ratio: 4 / 3; /* 4:3 비율 고정 */
-            object-fit: contain; 
-            border: 1px solid #ddd; 
-            background: #fafafa; 
-            margin: 0 auto; /* 가운데 정렬 */
-            display: block;
-        }
+        .pdf-photo-item img { width: 55%; height: auto; aspect-ratio: 4 / 3; object-fit: contain; border: 1px solid #ddd; background: #fafafa; margin: 0 auto; display: block; }
     </style>
 </head>
 <body>
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;">
-    <span>(주)METRO R&S 현장관리 시스템 V9.0</span>
+    <span>(주)METRO R&S 현장관리 시스템 V10.0</span>
 </header>
 
 <div class="container">
@@ -116,15 +90,14 @@
                 <input type="file" id="f2" hidden accept="image/*" onchange="view(this,'p2','t2')">
             </div>
             <div class="photo-box" onclick="document.getElementById('f3').click()">
-                <span id="t3">완료확인서📋</span><img id="p3" class="preview-img">
+                <span id="t3">완료확인서📋<br><small>(카톡 첨부용)</small></span><img id="p3" class="preview-img">
                 <input type="file" id="f3" hidden accept="image/*" onchange="view(this,'p3','t3')">
             </div>
         </div>
 
         <div class="btn-group">
             <button class="btn-save" onclick="saveLocal()">임시 저장</button>
-            <button class="btn-pdf" onclick="makePDF()">PDF 다운로드</button>
-            <button class="btn-send" onclick="sendSheetDB()">최종 전송</button>
+            <button class="btn-send" onclick="sendAndShare()">최종 전송 및 공유 (PDF+시트)</button>
         </div>
     </div>
 
@@ -165,14 +138,8 @@
         </tr>
     </table>
     <div class="pdf-photo-grid">
-        <div class="pdf-photo-item">
-            <p>[ 작 업 전 ]</p>
-            <img id="pdf-img1">
-        </div>
-        <div class="pdf-photo-item">
-            <p>[ 작 업 후 ]</p>
-            <img id="pdf-img2">
-        </div>
+        <div class="pdf-photo-item"><p>[ 작 업 전 ]</p><img id="pdf-img1"></div>
+        <div class="pdf-photo-item"><p>[ 작 업 후 ]</p><img id="pdf-img2"></div>
     </div>
 </div>
 
@@ -241,8 +208,9 @@
         }
     }
 
-    function saveLocal() {
-        const data = {
+    // 데이터 추출 공통 함수
+    function getCurrentData() {
+        return {
             date: document.getElementById('today-date').value,
             no: document.getElementById('no').value,
             site: document.getElementById('site').value,
@@ -254,6 +222,11 @@
             contractor: document.getElementById('contractor').value,
             desc: document.getElementById('desc').value
         };
+    }
+
+    // 임시 저장 (기존과 동일하되, 전송과 분리됨)
+    function saveLocal() {
+        const data = getCurrentData();
         if(!data.dong || !data.ho) return alert("동/호수는 필수 입력 사항입니다.");
         
         if (editIndex > -1) { 
@@ -266,6 +239,124 @@
         }
         updateTable();
         clearForm();
+    }
+
+    // 🌟 대통합 함수: PDF 생성 -> 공유창 호출 -> 구글 시트 전송 🌟
+    async function sendAndShare() {
+        const data = getCurrentData();
+        
+        // 1. 방어 로직: 현재 화면에 데이터가 있는지 확인
+        if(!data.dong || !data.ho) {
+            return alert("화면에 입력된 데이터가 없습니다. 빈 양식이거나 임시저장으로 화면이 지워졌다면, 하단 리스트를 클릭해 다시 불러오신 후 전송해주세요.");
+        }
+
+        const btn = document.querySelector('.btn-send');
+        btn.innerText = "⏳ 처리 중...";
+        btn.disabled = true;
+
+        try {
+            // ==========================================
+            // [A] PDF 생성 단계 (Blob 객체로 굽기)
+            // ==========================================
+            document.getElementById('pdf-date').innerText = data.date;
+            document.getElementById('pdf-no').innerText = data.no || "-";
+            document.getElementById('pdf-site').innerText = data.site || "-";
+            document.getElementById('pdf-unit').innerText = `${data.dong}동 ${data.ho}호`;
+            document.getElementById('pdf-locwork').innerText = `${data.loc} / ${data.work}`;
+            document.getElementById('pdf-type').innerText = data.type;
+            document.getElementById('pdf-contractor').innerText = data.contractor;
+            document.getElementById('pdf-desc').innerText = data.desc;
+            document.getElementById('pdf-img1').src = document.getElementById('p1').src || "";
+            document.getElementById('pdf-img2').src = document.getElementById('p2').src || "";
+
+            const element = document.getElementById('pdf-template');
+            element.style.display = 'block'; 
+
+            const opt = {
+                margin: [5, 5, 5, 5],
+                filename: `보고서_${data.dong}동_${data.ho}호.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // PDF를 파일(Blob) 형태로 생성 (다운로드 아님)
+            const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+            element.style.display = 'none'; 
+            
+            // 공유를 위해 File 객체로 변환
+            const pdfFile = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
+            const filesToShare = [pdfFile];
+
+            // ==========================================
+            // [B] 완료확인서(f3) 첨부 단계
+            // ==========================================
+            const f3 = document.getElementById('f3');
+            if (f3.files && f3.files.length > 0) {
+                const imgFile = f3.files[0];
+                const ext = imgFile.name.split('.').pop(); // 확장자 추출
+                // 파일 이름 깔끔하게 변경
+                const renamedImg = new File([imgFile], `완료확인서_${data.dong}동_${data.ho}호.${ext}`, { type: imgFile.type });
+                filesToShare.push(renamedImg);
+            }
+
+            // ==========================================
+            // [C] 카카오톡 등 네이티브 공유창 호출
+            // ==========================================
+            if (navigator.canShare && navigator.canShare({ files: filesToShare })) {
+                try {
+                    await navigator.share({
+                        files: filesToShare,
+                        title: `[보고서] ${data.dong}동 ${data.ho}호`,
+                        text: `현장명: ${data.site}\n동/호수: ${data.dong}동 ${data.ho}호\n작업완료 보고서 및 완료확인서 첨부합니다.`
+                    });
+                } catch (shareError) {
+                    console.log("공유가 취소되었거나 실패했습니다.", shareError);
+                    // 취소해도 시트 전송은 진행해야 하므로 멈추지 않음
+                }
+            } else {
+                // PC 접속 등으로 공유 기능을 지원하지 않을 때는 기존처럼 PDF 직접 다운로드
+                alert("현재 기기/브라우저는 자동 공유를 지원하지 않아 PDF가 직접 다운로드됩니다.");
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = pdfUrl;
+                a.download = opt.filename;
+                a.click();
+                URL.revokeObjectURL(pdfUrl);
+            }
+
+            // ==========================================
+            // [D] 구글 시트 백업 전송 단계
+            // ==========================================
+            // 현재 화면의 데이터를 리스트에 넣고 전송 (중복 방지)
+            const exists = savedList.find(item => item.dong === data.dong && item.ho === data.ho && item.desc === data.desc);
+            if(!exists) savedList.push(data);
+
+            const MY_API_URL = "https://sheetdb.io/api/v1/espz77lzn6sii"; 
+            const url = document.getElementById('api-url').value || MY_API_URL;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ data: savedList }) 
+            });
+
+            if(response.ok) {
+                alert("✅ 구글 시트 전송 완료!\n모든 작업이 끝났습니다.");
+                savedList = []; // 성공 시 리스트 비우기
+                updateTable();
+                clearForm();    // 폼 완전 초기화
+            } else { 
+                const res = await response.json();
+                alert("⚠️ PDF/공유는 완료되었으나 구글 시트 전송에 실패했습니다: " + (res.error || "헤더 오류")); 
+            }
+
+        } catch(e) { 
+            alert("❌ 치명적 오류가 발생했습니다: " + e.message); 
+        }
+        
+        btn.innerText = "최종 전송 및 공유 (PDF+시트)";
+        btn.disabled = false;
     }
 
     function updateTable() {
@@ -282,36 +373,6 @@
                 </tr>`).join('');
         }
         document.getElementById('count').innerText = savedList.length;
-    }
-
-    async function sendSheetDB() {
-        const MY_API_URL = "https://sheetdb.io/api/v1/espz77lzn6sii"; 
-        const url = document.getElementById('api-url').value || MY_API_URL;
-        
-        if(savedList.length === 0) return alert("전송할 데이터가 없습니다.");
-        
-        const btn = document.querySelector('.btn-send');
-        btn.innerText = "⏳ 전송 중...";
-        btn.disabled = true;
-        
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ data: savedList }) 
-            });
-            if(response.ok) {
-                alert("✅ 구글 시트 전송 성공!");
-                savedList = []; 
-                updateTable();
-            } else { 
-                const res = await response.json();
-                alert("❌ 전송 실패: " + (res.error || "헤더 구성을 확인하세요.")); 
-            }
-        } catch(e) { alert("❌ 통신 오류가 발생했습니다."); }
-        
-        btn.innerText = "최종 전송";
-        btn.disabled = false;
     }
 
     function editRow(index) {
@@ -354,46 +415,8 @@
             document.getElementById('f'+i).value = '';
             document.getElementById('p'+i).src = '';
         });
-    }
-
-    function makePDF() {
-        const dong = document.getElementById('dong').value;
-        const ho = document.getElementById('ho').value;
-        if(!dong || !ho) return alert("동/호수를 먼저 입력하거나 목록에서 선택해주세요.");
-
-        document.getElementById('pdf-date').innerText = document.getElementById('today-date').value;
-        document.getElementById('pdf-no').innerText = document.getElementById('no').value || "-";
-        document.getElementById('pdf-site').innerText = document.getElementById('site').value || "-";
-        document.getElementById('pdf-unit').innerText = `${dong}동 ${ho}호`;
-        document.getElementById('pdf-locwork').innerText = `${document.getElementById('loc').value} / ${document.getElementById('work').value}`;
-        document.getElementById('pdf-type').innerText = document.getElementById('type').value;
-        document.getElementById('pdf-contractor').innerText = document.getElementById('contractor').value;
-        document.getElementById('pdf-desc').innerText = document.getElementById('desc').value;
-
-        document.getElementById('pdf-img1').src = document.getElementById('p1').src || "";
-        document.getElementById('pdf-img2').src = document.getElementById('p2').src || "";
-
-        const element = document.getElementById('pdf-template');
-        element.style.display = 'block'; 
-
-        // 🌟 PDF 생성 옵션: 상단 여백을 줄여서 한 장에 맞춤
-        const opt = {
-            margin: [5, 5, 5, 5], // 상하좌우 여백 최소화
-            filename: `하자보수완료_${dong}동_${ho}호.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            element.style.display = 'none'; 
-        });
+        editIndex = -1;
     }
 </script>
 </body>
 </html>
-
-
-
-
-
