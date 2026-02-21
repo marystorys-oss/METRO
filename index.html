@@ -77,7 +77,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 클라우드 시스템 V17.0</span>
+    <span>(주)METRO R&S 클라우드 시스템 V1.0</span>
 </header>
 
 <div class="container">
@@ -135,12 +135,12 @@
 </div>
 
 <div id="pdf-template">
-    <h1>하자보수 작업 완료 보고서</h1>
+    <h1>하자보수 작업 완료 사진대지</h1>
     <table>
-        <tr><td class="label">점검일자</td><td id="pdf-date"></td><td class="label">관리번호</td><td id="pdf-no"></td></tr>
+        <tr><td class="label">점검일자</td><td id="pdf-date"></td><td class="label">시공업체</td><td id="pdf-contractor"></td></tr>
         <tr><td class="label">현장명</td><td id="pdf-site" colspan="3"></td></tr>
-        <tr><td class="label">동/호수</td><td id="pdf-unit"></td><td class="label">위치/공종</td><td id="pdf-locwork"></td></tr>
-        <tr><td class="label">하자유형</td><td id="pdf-type"></td><td class="label">시공업체</td><td id="pdf-contractor"></td></tr>
+        <tr><td class="label">동/호수</td><td id="pdf-unit"></td><td class="label">위치</td><td id="pdf-loc"></td></tr>
+        <tr><td class="label">공종</td><td id="pdf-work"></td><td class="label">하자유형</td><td id="pdf-type"></td></tr>
         <tr><td class="label">상세내용</td><td id="pdf-desc" colspan="3" style="text-align:left; height:60px; vertical-align:top;"></td></tr>
     </table>
     <div class="pdf-photo-grid">
@@ -177,7 +177,7 @@
 
     async function fetchCloudDB() {
         const select = document.getElementById('db-sheet');
-        select.innerHTML = '<option value="">⏳ 구글 시트에서 DB 다운로드 중...</option>';
+        select.innerHTML = '<option value="">⏳ DB 다운로드 중...</option>';
         try {
             const response = await fetch(MY_GAS_URL);
             const json = await response.json();
@@ -187,11 +187,11 @@
                 const sheetNames = Object.keys(cloudDB);
                 
                 if(sheetNames.length === 0) {
-                    select.innerHTML = '<option value="">⚠️ 구글 시트에 데이터가 없습니다.</option>';
+                    select.innerHTML = '<option value="">⚠️ 데이터가 없습니다.</option>';
                     return;
                 }
                 
-                select.innerHTML = '<option value="">📑 공종(작업 시트)을 선택하세요</option>';
+                select.innerHTML = '<option value="">📑 공종을 선택하세요</option>';
                 sheetNames.forEach(name => {
                     select.innerHTML += `<option value="${name}">${name} (데이터 ${cloudDB[name].length}건)</option>`;
                 });
@@ -209,7 +209,7 @@
         const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
         
         if (!selectedSheetName) {
-            alert("먼저 위의 '공종(작업 시트)'을 선택해 주세요!");
+            alert("먼저 위의 '공종'을 선택해 주세요!");
             document.getElementById('no').value = '';
             return;
         }
@@ -345,7 +345,7 @@
                 });
             }
 
-            btn.innerText = "⏳ 2/2: 구글 서버 발송 중 (약 5~10초)...";
+            btn.innerText = "⏳ 2/2: 발송 중 (약 5~10초)...";
             btn.style.background = "#e67e22";
 
             const payload = { record: pendingData, pdfBase64: base64Data, certBase64: certBase64Data, certName: certFileName, email: email };
@@ -353,7 +353,7 @@
             const result = await response.json();
 
             if(result.result === 'success') {
-                alert(`✅ 완료!\n1. 구글 시트에 기록되었습니다.\n2. [${email}]로 보고서가 발송되었습니다.`);
+                alert(`✅ 완료!\n1. 기록되었습니다.\n2. [${email}]로 보고서가 발송되었습니다.`);
                 const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
                 if(!exists) savedList.push(pendingData);
                 updateTable();
@@ -361,7 +361,7 @@
             } else { alert("⚠️ 서버 오류가 발생했습니다.\n" + result.message); }
         } catch(e) { alert("❌ 인터넷 연결 불안정 또는 데이터 초과 오류입니다."); }
 
-        btn.innerText = "최종 전송 (시트기록+이메일)";
+        btn.innerText = "최종 전송 (기록+이메일)";
         btn.style.background = "var(--share)";
         btn.disabled = false;
     }
@@ -387,3 +387,4 @@
 </script>
 </body>
 </html>
+
