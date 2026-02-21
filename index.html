@@ -364,24 +364,22 @@
         html2pdf().set(opt).from(target).save().then(() => target.style.display = 'none');
     }
 
-    // [6] SheetDB 구글 시트 전송 (오류 방지 코드 추가됨)
+// [6] SheetDB 구글 시트 전송 (API 주소 고정 버전)
     async function sendSheetDB() {
-        const urlInput = document.getElementById('api-url');
-        let url = urlInput.value;
-
-        // 🌟 코드가 값을 낚아채서 강제로 브라우저에 한 번 더 저장합니다.
-        if(url) {
-            localStorage.setItem('mySheetDbUrl', url);
-        } else {
-            // 진짜로 아무것도 안 적혀 있을 때만 경고창을 띄웁니다.
-            toggleConfig();
-            return alert("설정창에서 SheetDB API URL을 먼저 입력해주세요.");
-        }
+        // 🌟 여기에 선생님의 SheetDB API 주소를 직접 붙여넣으세요! (따옴표는 지우지 마세요)
+        const MY_API_URL = "https://sheetdb.io/api/v1/여기에본인주소입력"; 
 
         if(savedList.length === 0) return alert("전송할 데이터가 없습니다. 먼저 [임시 저장]을 해주세요.");
         
         try {
-            const response = await fetch(url, {
+            // 버튼 상태 변경 (전송 중 표시)
+            const btn = document.querySelector('.btn-send');
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ 전송 중...";
+            btn.disabled = true;
+
+            // 고정된 MY_API_URL로 바로 전송합니다.
+            const response = await fetch(MY_API_URL, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ data: savedList }) 
@@ -389,20 +387,27 @@
             
             const result = await response.json();
             
+            // 버튼 상태 원상복구
+            btn.innerText = originalText;
+            btn.disabled = false;
+
             if(response.ok) {
                 alert(`✅ 성공! 총 ${result.created || savedList.length}건이 구글 시트에 안전하게 전송되었습니다.`);
-                savedList = []; 
+                savedList = []; // 성공 시 리스트 비우기
                 updateTable();
             } else {
-                alert("❌ 전송 실패: 구글 시트 1행 헤더(no, site, dong...)가 일치하는지 확인하세요.\n오류: " + JSON.stringify(result));
+                alert("❌ 전송 실패: 구글 시트 1행 헤더(no, site, dong...)를 확인하세요.\n\n오류 내용: " + JSON.stringify(result));
             }
         } catch(e) { 
-            alert("❌ 통신 오류: API 주소가 잘못되었거나 인터넷 연결이 불안정합니다."); 
+            document.querySelector('.btn-send').innerText = "구글 시트 최종 전송";
+            document.querySelector('.btn-send').disabled = false;
+            alert("❌ 통신 오류: 인터넷 연결을 확인해 주세요."); 
         }
     }
 </script>
 </body>
 </html>
+
 
 
 
