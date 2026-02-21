@@ -41,43 +41,27 @@
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
-        /* 🌟 완벽한 1장 출력을 위한 PDF 철통 고정 CSS 🌟 */
+        /* PDF 템플릿 CSS */
         #pdf-template { 
-            display: none; 
-            width: 794px;   /* A4 픽셀 너비 (절대 고정) */
-            height: 1122px; /* A4 픽셀 높이 (절대 고정) */
-            padding: 30px 40px; /* 안쪽 여백 축소 */
-            background: white; 
-            font-family: 'Malgun Gothic', sans-serif; 
-            box-sizing: border-box; 
+            display: none; width: 794px; height: 1122px; padding: 30px 40px; 
+            background: white; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; 
         }
         #pdf-template h1 { text-align: center; color: #1e272e; margin: 0 0 15px 0; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; }
         #pdf-template table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
         #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 8px; text-align: center; font-size: 14px; }
         #pdf-template .label { background: #f2f2f2; font-weight: bold; width: 20%; }
         
-        /* 사진 영역 밀림 및 비율 찌그러짐 완벽 차단 */
         .pdf-photo-grid { display: flex; flex-direction: column; gap: 15px; }
         .pdf-photo-item { width: 100%; text-align: center; }
         .pdf-photo-item p { margin: 0 0 5px 0; font-weight: bold; font-size: 15px; }
-        
-        /* 🌟 핵심: 세로 높이만 고정하고 가로를 자동(auto)으로 두어 4:3 원본 비율 절대 사수! */
-        .pdf-photo-item img { 
-            height: 330px;     /* A4 1장에 2개가 들어가기 위한 세로 마지노선 길이 */
-            width: auto;       /* 👈 가로가 세로에 맞춰 자동으로 조절됨 (찌그러짐 완전 방지!) */
-            max-width: 100%;   /* 혹시라도 가로로 엄청 긴 사진이 들어와도 페이지를 넘지 않게 방어 */
-            border: 2px solid #ddd; 
-            background: #fafafa; 
-            margin: 0 auto; 
-            display: block; 
-        }
+        .pdf-photo-item img { height: 330px; width: auto; max-width: 100%; border: 2px solid #ddd; background: #fafafa; margin: 0 auto; display: block; }
     </style>
 </head>
 <body>
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 클라우드 시스템 V1.0</span>
+    <span>(주)METRO R&S 시스템 V17.2</span>
 </header>
 
 <div class="container">
@@ -93,11 +77,9 @@
         <div class="section-title">✏️ 현장 작업 기록</div>
         <div class="grid-input">
             <input type="date" id="today-date">
-            
             <select id="db-sheet" onchange="clearFormButKeepSheet()">
                 <option value="">⏳ 앱을 켜면 구글 시트를 자동으로 불러옵니다...</option>
             </select>
-            
             <input type="number" id="no" placeholder="🔍 관리 번호 입력" oninput="searchAndFill(this.value)">
             <input type="text" id="site" placeholder="현장명">
             <input type="text" id="dong" placeholder="동">
@@ -150,6 +132,7 @@
 </div>
 
 <script>
+    // 🌟 선생님의 구글 서버 주소
     const MY_GAS_URL = "https://script.google.com/macros/s/AKfycbzAZ2rx-msOt_LZ1CXtxW17IWLf7uf9k7vZFQsYF9fk3m4xUlRZL5IqiNAQ-hKSSzHD/exec";
 
     let cloudDB = {}; 
@@ -185,38 +168,24 @@
             if(json.result === 'success') {
                 cloudDB = json.data;
                 const sheetNames = Object.keys(cloudDB);
-                
                 if(sheetNames.length === 0) {
                     select.innerHTML = '<option value="">⚠️ 데이터가 없습니다.</option>';
                     return;
                 }
-                
                 select.innerHTML = '<option value="">📑 공종을 선택하세요</option>';
                 sheetNames.forEach(name => {
                     select.innerHTML += `<option value="${name}">${name} (데이터 ${cloudDB[name].length}건)</option>`;
                 });
-                
-            } else {
-                select.innerHTML = '<option value="">❌ DB 연동 실패</option>';
-            }
-        } catch (error) {
-            select.innerHTML = '<option value="">❌ 인터넷 연결을 확인하세요</option>';
-        }
+            } else { select.innerHTML = '<option value="">❌ DB 연동 실패</option>'; }
+        } catch (error) { select.innerHTML = '<option value="">❌ 인터넷 연결을 확인하세요</option>'; }
     }
 
     function searchAndFill(searchNo) {
         const selectedSheetName = document.getElementById('db-sheet').value;
         const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
-        
-        if (!selectedSheetName) {
-            alert("먼저 위의 '공종'을 선택해 주세요!");
-            document.getElementById('no').value = '';
-            return;
-        }
-
+        if (!selectedSheetName) { alert("먼저 위의 '공종'을 선택해 주세요!"); document.getElementById('no').value = ''; return; }
         const currentDB = cloudDB[selectedSheetName] || [];
         const found = currentDB.find(item => String(item.no) === String(searchNo));
-        
         fields.forEach(id => {
             document.getElementById(id).value = found ? (found[id] || '') : '';
             found && found[id] ? document.getElementById(id).classList.add('filled') : document.getElementById(id).classList.remove('filled');
@@ -225,10 +194,7 @@
 
     function clearFormButKeepSheet() {
         const fields = ['no','site','dong','ho','loc','work','type','contractor','desc'];
-        fields.forEach(id => {
-            document.getElementById(id).value = '';
-            document.getElementById(id).classList.remove('filled');
-        });
+        fields.forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).classList.remove('filled'); });
     }
 
     function view(input, pId, tId) {
@@ -318,12 +284,11 @@
             const element = document.getElementById('pdf-template');
             element.style.display = 'block'; 
 
-            // 🌟 PDF 생성 옵션: A4 사이즈(mm 단위)에 캔버스를 욱여넣어 절대 짤리지 않게 방어
             const opt = { 
                 margin: 0, 
                 filename: `보고서.pdf`, 
                 image: { type: 'jpeg', quality: 0.95 }, 
-                html2canvas: { scale: 2, useCORS: true, windowWidth: 794 }, // 렌더링 너비 강제 고정
+                html2canvas: { scale: 2, useCORS: true, windowWidth: 794 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
             };
             
@@ -331,6 +296,7 @@
             element.style.display = 'none'; 
             const base64Data = pdfBase64String.split(',')[1];
 
+            // 🌟 V17.2: 완료확인서 초강력 자동 압축 로직 (이것이 핵심입니다!)
             let certBase64Data = "";
             let certFileName = "";
             const f3 = document.getElementById('f3');
@@ -338,10 +304,28 @@
                 const certFile = f3.files[0];
                 const ext = certFile.name.split('.').pop() || 'jpg';
                 certFileName = `완료확인서_${pendingData.dong}동_${pendingData.ho}호.${ext}`;
-                certBase64Data = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-                    reader.readAsDataURL(certFile);
+                
+                certBase64Data = await new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width;
+                        let h = img.height;
+                        const MAX_SIZE = 1200; // 해상도 최대 1200px로 제한하여 용량 다이어트
+
+                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } 
+                        else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+                        
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        // 0.8 품질의 가벼운 jpg로 압축하여 데이터 폭발 방지
+                        resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+                    };
+                    img.onerror = () => reject("이미지 로드 오류");
+                    img.src = URL.createObjectURL(certFile);
                 });
             }
 
@@ -352,7 +336,7 @@
             const response = await fetch(MY_GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
             const result = await response.json();
 
-// --- 이 부분부터 ---
+            // 🌟 결과 처리 로직
             if(result.result === 'success') {
                 alert(`✅ 완료!\n1. 구글 시트에 기록되었습니다.\n2. [${email}]로 보고서가 발송되었습니다.`);
                 const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
@@ -360,7 +344,6 @@
                 updateTable();
                 clearForm();    
             } else if (result.result === 'half_success') {
-                // 🌟 한도 초과 시 처리 로직 추가
                 alert(`⚠️ 이메일 발송 한도 초과 (기록은 성공!)\n\n구글 계정의 오늘 이메일 발송 한도가 소진되어 메일은 가지 않았지만, 데이터는 [구글 시트]에 안전하게 기록되었습니다!`);
                 const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
                 if(!exists) savedList.push(pendingData);
@@ -369,8 +352,9 @@
             } else { 
                 alert("⚠️ 서버 오류가 발생했습니다.\n" + result.message); 
             }
-            // --- 여기까지 교체 ---
-        } catch(e) { alert("❌ 인터넷 연결 불안정 또는 데이터 초과 오류입니다."); }
+        } catch(e) { 
+            alert("❌ 인터넷 연결 불안정 또는 데이터 초과 오류입니다.\n(사진 용량을 더 줄여보세요)"); 
+        }
 
         btn.innerText = "최종 전송 (기록+이메일)";
         btn.style.background = "var(--share)";
@@ -398,5 +382,3 @@
 </script>
 </body>
 </html>
-
-
