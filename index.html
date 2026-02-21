@@ -27,9 +27,9 @@
         .preview-img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; }
         
         .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
-        button { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 15px; }
+        button { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.3s; }
         .btn-save { background: var(--success); flex: 1; min-width: 100px; }
-        .btn-send { background: var(--share); flex: 2; font-size: 16px; } /* 전송 및 공유 버튼 강조 */
+        .btn-send { background: var(--share); flex: 2; font-size: 16px; } 
         
         #search-box { width: 100%; border: 2px solid var(--accent); margin-bottom: 10px; padding: 10px; border-radius: 6px; }
         .table-wrapper { overflow-x: auto; border-radius: 6px; border: 1px solid #eee; }
@@ -53,7 +53,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;">
-    <span>(주)METRO R&S 현장관리 시스템 V10.0</span>
+    <span>(주)METRO R&S 현장관리 시스템 V11.0</span>
 </header>
 
 <div class="container">
@@ -97,7 +97,7 @@
 
         <div class="btn-group">
             <button class="btn-save" onclick="saveLocal()">임시 저장</button>
-            <button class="btn-send" onclick="sendAndShare()">최종 전송 및 공유 (PDF+시트)</button>
+            <button class="btn-send" onclick="prepareShareAndSend()">최종 전송 및 공유 (PDF+시트)</button>
         </div>
     </div>
 
@@ -147,6 +147,10 @@
     let excelDB = []; 
     let savedList = []; 
     let editIndex = -1; 
+    
+    // 전역 변수: 1단계에서 구운 PDF와 사진 파일을 보관합니다.
+    let preparedFilesToShare = [];
+    let pendingData = null;
 
     window.onload = function() {
         const savedUrl = localStorage.getItem('mySheetDbUrl');
@@ -160,6 +164,7 @@
     }
 
     function loadExcelDB(input) {
+        // (기존과 동일)
         const file = input.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -208,7 +213,6 @@
         }
     }
 
-    // 데이터 추출 공통 함수
     function getCurrentData() {
         return {
             date: document.getElementById('today-date').value,
@@ -224,7 +228,6 @@
         };
     }
 
-    // 임시 저장 (기존과 동일하되, 전송과 분리됨)
     function saveLocal() {
         const data = getCurrentData();
         if(!data.dong || !data.ho) return alert("동/호수는 필수 입력 사항입니다.");
@@ -241,31 +244,31 @@
         clearForm();
     }
 
-    // 🌟 대통합 함수: PDF 생성 -> 공유창 호출 -> 구글 시트 전송 🌟
-    async function sendAndShare() {
-        const data = getCurrentData();
+    // ==========================================
+    // 🌟 [1단계] PDF 먼저 굽고 사용자 터치 대기
+    // ==========================================
+    async function prepareShareAndSend() {
+        pendingData = getCurrentData();
         
-        // 1. 방어 로직: 현재 화면에 데이터가 있는지 확인
-        if(!data.dong || !data.ho) {
+        if(!pendingData.dong || !pendingData.ho) {
             return alert("화면에 입력된 데이터가 없습니다. 빈 양식이거나 임시저장으로 화면이 지워졌다면, 하단 리스트를 클릭해 다시 불러오신 후 전송해주세요.");
         }
 
         const btn = document.querySelector('.btn-send');
-        btn.innerText = "⏳ 처리 중...";
+        btn.innerText = "⏳ 1단계: PDF 굽는 중...";
         btn.disabled = true;
+        btn.style.background = "#7f8c8d"; // 회색으로 변경
 
         try {
-            // ==========================================
-            // [A] PDF 생성 단계 (Blob 객체로 굽기)
-            // ==========================================
-            document.getElementById('pdf-date').innerText = data.date;
-            document.getElementById('pdf-no').innerText = data.no || "-";
-            document.getElementById('pdf-site').innerText = data.site || "-";
-            document.getElementById('pdf-unit').innerText = `${data.dong}동 ${data.ho}호`;
-            document.getElementById('pdf-locwork').innerText = `${data.loc} / ${data.work}`;
-            document.getElementById('pdf-type').innerText = data.type;
-            document.getElementById('pdf-contractor').innerText = data.contractor;
-            document.getElementById('pdf-desc').innerText = data.desc;
+            // PDF 매핑
+            document.getElementById('pdf-date').innerText = pendingData.date;
+            document.getElementById('pdf-no').innerText = pendingData.no || "-";
+            document.getElementById('pdf-site').innerText = pendingData.site || "-";
+            document.getElementById('pdf-unit').innerText = `${pendingData.dong}동 ${pendingData.ho}호`;
+            document.getElementById('pdf-locwork').innerText = `${pendingData.loc} / ${pendingData.work}`;
+            document.getElementById('pdf-type').innerText = pendingData.type;
+            document.getElementById('pdf-contractor').innerText = pendingData.contractor;
+            document.getElementById('pdf-desc').innerText = pendingData.desc;
             document.getElementById('pdf-img1').src = document.getElementById('p1').src || "";
             document.getElementById('pdf-img2').src = document.getElementById('p2').src || "";
 
@@ -274,149 +277,49 @@
 
             const opt = {
                 margin: [5, 5, 5, 5],
-                filename: `보고서_${data.dong}동_${data.ho}호.pdf`,
+                filename: `보고서_${pendingData.dong}동_${pendingData.ho}호.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // PDF를 파일(Blob) 형태로 생성 (다운로드 아님)
+            // PDF 파일 객체로 생성
             const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
             element.style.display = 'none'; 
-            
-            // 공유를 위해 File 객체로 변환
             const pdfFile = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
-            const filesToShare = [pdfFile];
+            preparedFilesToShare = [pdfFile];
 
-            // ==========================================
-            // [B] 완료확인서(f3) 첨부 단계
-            // ==========================================
+            // 완료확인서 첨부
             const f3 = document.getElementById('f3');
             if (f3.files && f3.files.length > 0) {
                 const imgFile = f3.files[0];
-                const ext = imgFile.name.split('.').pop(); // 확장자 추출
-                // 파일 이름 깔끔하게 변경
-                const renamedImg = new File([imgFile], `완료확인서_${data.dong}동_${data.ho}호.${ext}`, { type: imgFile.type });
-                filesToShare.push(renamedImg);
+                const ext = imgFile.name.split('.').pop();
+                const renamedImg = new File([imgFile], `완료확인서_${pendingData.dong}동_${pendingData.ho}호.${ext}`, { type: imgFile.type });
+                preparedFilesToShare.push(renamedImg);
             }
 
-            // ==========================================
-            // [C] 카카오톡 등 네이티브 공유창 호출
-            // ==========================================
-            if (navigator.canShare && navigator.canShare({ files: filesToShare })) {
-                try {
-                    await navigator.share({
-                        files: filesToShare,
-                        title: `[보고서] ${data.dong}동 ${data.ho}호`,
-                        text: `현장명: ${data.site}\n동/호수: ${data.dong}동 ${data.ho}호\n작업완료 보고서 및 완료확인서 첨부합니다.`
-                    });
-                } catch (shareError) {
-                    console.log("공유가 취소되었거나 실패했습니다.", shareError);
-                    // 취소해도 시트 전송은 진행해야 하므로 멈추지 않음
-                }
-            } else {
-                // PC 접속 등으로 공유 기능을 지원하지 않을 때는 기존처럼 PDF 직접 다운로드
-                alert("현재 기기/브라우저는 자동 공유를 지원하지 않아 PDF가 직접 다운로드됩니다.");
-                const pdfUrl = URL.createObjectURL(pdfBlob);
-                const a = document.createElement('a');
-                a.href = pdfUrl;
-                a.download = opt.filename;
-                a.click();
-                URL.revokeObjectURL(pdfUrl);
-            }
+            // 🌟 1단계 완료! 버튼을 눈에 띄게 변경하고 2단계 함수 연결 🌟
+            btn.innerText = "👉 2단계: 여기를 눌러 카톡 공유하기!";
+            btn.style.background = "#e74c3c"; // 강렬한 빨간색
+            btn.disabled = false;
+            btn.onclick = executeShareAndSend; // 클릭 시 2단계로 넘어감
 
-            // ==========================================
-            // [D] 구글 시트 백업 전송 단계
-            // ==========================================
-            // 현재 화면의 데이터를 리스트에 넣고 전송 (중복 방지)
-            const exists = savedList.find(item => item.dong === data.dong && item.ho === data.ho && item.desc === data.desc);
-            if(!exists) savedList.push(data);
-
-            const MY_API_URL = "https://sheetdb.io/api/v1/espz77lzn6sii"; 
-            const url = document.getElementById('api-url').value || MY_API_URL;
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ data: savedList }) 
-            });
-
-            if(response.ok) {
-                alert("✅ 구글 시트 전송 완료!\n모든 작업이 끝났습니다.");
-                savedList = []; // 성공 시 리스트 비우기
-                updateTable();
-                clearForm();    // 폼 완전 초기화
-            } else { 
-                const res = await response.json();
-                alert("⚠️ PDF/공유는 완료되었으나 구글 시트 전송에 실패했습니다: " + (res.error || "헤더 오류")); 
-            }
-
-        } catch(e) { 
-            alert("❌ 치명적 오류가 발생했습니다: " + e.message); 
+        } catch(e) {
+            alert("❌ PDF 생성 오류: " + e.message);
+            resetSendButton();
         }
+    }
+
+    // ==========================================
+    // 🌟 [2단계] 보안 통과용 즉시 공유 및 시트 전송
+    // ==========================================
+    async function executeShareAndSend() {
+        const btn = document.querySelector('.btn-send');
         
-        btn.innerText = "최종 전송 및 공유 (PDF+시트)";
-        btn.disabled = false;
-    }
-
-    function updateTable() {
-        const body = document.getElementById('list-body');
-        if (savedList.length === 0) {
-            body.innerHTML = '<tr><td colspan="4" style="color:#999; padding:20px;">저장된 작업이 없습니다.</td></tr>';
-        } else {
-            body.innerHTML = savedList.map((r, i) => `
-                <tr onclick="editRow(${i})" style="cursor:pointer;">
-                    <td>${r.no || '-'}</td>
-                    <td><b>${r.site}</b><br>${r.dong}-${r.ho}</td>
-                    <td>${r.work}<br><span style="color:#888; font-size:11px;">${r.type}</span></td>
-                    <td><button style="background:#95a5a6; padding:5px 10px; font-size:11px; border:none; border-radius:3px; color:white;" onclick="deleteRow(event, ${i})">삭제</button></td>
-                </tr>`).join('');
-        }
-        document.getElementById('count').innerText = savedList.length;
-    }
-
-    function editRow(index) {
-        const data = savedList[index];
-        editIndex = index;
-        document.getElementById('today-date').value = data.date;
-        document.getElementById('no').value = data.no;
-        document.getElementById('site').value = data.site;
-        document.getElementById('dong').value = data.dong;
-        document.getElementById('ho').value = data.ho;
-        document.getElementById('loc').value = data.loc;
-        document.getElementById('work').value = data.work;
-        document.getElementById('type').value = data.type;
-        document.getElementById('contractor').value = data.contractor;
-        document.getElementById('desc').value = data.desc;
-        
-        const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
-        fields.forEach(id => document.getElementById(id).classList.add('filled'));
-        
-        window.scrollTo({top: 0, behavior: 'smooth'});
-    }
-
-    function deleteRow(e, i) { 
-        e.stopPropagation(); 
-        if(confirm("이 항목을 삭제할까요?")) { 
-            savedList.splice(i, 1); 
-            updateTable(); 
-        } 
-    }
-
-    function clearForm() {
-        const fields = ['no','site','dong','ho','loc','work','type','contractor','desc'];
-        fields.forEach(id => {
-            document.getElementById(id).value = '';
-            document.getElementById(id).classList.remove('filled');
-        });
-        [1,2,3].forEach(i => {
-            document.getElementById('p'+i).style.display = 'none';
-            document.getElementById('t'+i).style.display = 'block';
-            document.getElementById('f'+i).value = '';
-            document.getElementById('p'+i).src = '';
-        });
-        editIndex = -1;
-    }
-</script>
-</body>
-</html>
+        // [A] 카톡 공유 (터치 즉시 실행되므로 스마트폰 보안 무사통과!)
+        if (navigator.canShare && navigator.canShare({ files: preparedFilesToShare })) {
+            try {
+                await navigator.share({
+                    files: preparedFilesToShare,
+                    title: `[보고서] ${pendingData.dong}동 ${pendingData.ho}호`,
+                    text: `현장명: ${pendingData.site}\n동/호수: ${
