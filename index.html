@@ -364,13 +364,20 @@
         html2pdf().set(opt).from(target).save().then(() => target.style.display = 'none');
     }
 
-    // [6] SheetDB 구글 시트 전송
+    // [6] SheetDB 구글 시트 전송 (오류 방지 코드 추가됨)
     async function sendSheetDB() {
-        const url = document.getElementById('api-url').value;
-        if(!url) {
+        const urlInput = document.getElementById('api-url');
+        let url = urlInput.value;
+
+        // 🌟 코드가 값을 낚아채서 강제로 브라우저에 한 번 더 저장합니다.
+        if(url) {
+            localStorage.setItem('mySheetDbUrl', url);
+        } else {
+            // 진짜로 아무것도 안 적혀 있을 때만 경고창을 띄웁니다.
             toggleConfig();
-            return alert("설정창에서 API URL을 먼저 입력해주세요.");
+            return alert("설정창에서 SheetDB API URL을 먼저 입력해주세요.");
         }
+
         if(savedList.length === 0) return alert("전송할 데이터가 없습니다. 먼저 [임시 저장]을 해주세요.");
         
         try {
@@ -396,5 +403,6 @@
 </script>
 </body>
 </html>
+
 
 
