@@ -24,9 +24,10 @@
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .filled { background-color: var(--highlight); border-color: var(--success); } 
         
-        .photo-area { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 15px; } /* 사진 2칸으로 변경 */
-        .photo-box { background: #f8f9fa; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #cfd8dc; border-radius: 8px; cursor: pointer; position: relative; overflow: hidden; }
-        .photo-box span { font-size: 14px; color: #546e7a; font-weight: bold; text-align: center; }
+        /* 🌟 다시 3칸으로 복구됨 */
+        .photo-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+        .photo-box { background: #f8f9fa; height: 100px; display: flex; align-items: center; justify-content: center; border: 2px dashed #cfd8dc; border-radius: 8px; cursor: pointer; position: relative; overflow: hidden; }
+        .photo-box span { font-size: 12px; color: #546e7a; font-weight: bold; text-align: center; }
         .preview-img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; }
         
         .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
@@ -56,7 +57,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 시스템 V13.0 (자동화)</span>
+    <span>(주)METRO R&S 시스템 V14.0 (자동화)</span>
 </header>
 
 <div class="container">
@@ -91,6 +92,10 @@
             <div class="photo-box" onclick="document.getElementById('f2').click()">
                 <span id="t2">작업 후📷</span><img id="p2" class="preview-img">
                 <input type="file" id="f2" hidden accept="image/*" onchange="view(this,'p2','t2')">
+            </div>
+            <div class="photo-box" onclick="document.getElementById('f3').click()">
+                <span id="t3">완료확인서📋<br><small>(메일 첨부용)</small></span><img id="p3" class="preview-img">
+                <input type="file" id="f3" hidden accept="image/*" onchange="view(this,'p3','t3')">
             </div>
         </div>
 
@@ -143,7 +148,7 @@
 </div>
 
 <script>
-    // 🌟 선생님의 구글 앱스 스크립트 전용 서버 주소 (고정)
+    // 🌟 선생님의 구글 서버 주소
     const MY_GAS_URL = "https://script.google.com/macros/s/AKfycbzAZ2rx-msOt_LZ1CXtxW17IWLf7uf9k7vZFQsYF9fk3m4xUlRZL5IqiNAQ-hKSSzHD/exec";
 
     let excelDB = []; 
@@ -153,7 +158,6 @@
 
     window.onload = function() {
         try {
-            // 저장된 이메일 불러오기
             const savedEmail = localStorage.getItem('myTargetEmail');
             if (savedEmail) document.getElementById('target-email').value = savedEmail;
             
@@ -162,7 +166,6 @@
         } catch(e) {}
     };
 
-    // 이메일 입력 시 폰에 자동 저장
     document.getElementById('target-email').addEventListener('change', function() {
         localStorage.setItem('myTargetEmail', this.value);
     });
@@ -269,10 +272,9 @@
     }
 
     // ==========================================
-    // 🌟 완전 자동화 전송 함수 (PDF 생성 + 서버 연동)
+    // 🌟 완전 자동화 전송 (완료확인서 첨부 기능 포함)
     // ==========================================
     async function sendToGoogleServer() {
-        // 1. 이메일 주소 확인
         let email = document.getElementById('target-email').value || localStorage.getItem('myTargetEmail');
         if(!email) {
             email = prompt("보고서를 발송할 이메일 주소를 입력하세요:");
@@ -287,12 +289,12 @@
         }
 
         const btn = document.querySelector('.btn-send');
-        btn.innerText = "⏳ 1/2: PDF 보고서 생성 중...";
+        btn.innerText = "⏳ 1/2: 첨부파일 준비 중...";
         btn.disabled = true;
         btn.style.background = "#7f8c8d";
 
         try {
-            // [A] PDF 굽기 (화질 최적화)
+            // [A] PDF 굽기
             document.getElementById('pdf-date').innerText = pendingData.date;
             document.getElementById('pdf-no').innerText = pendingData.no || "-";
             document.getElementById('pdf-site').innerText = pendingData.site || "-";
@@ -312,40 +314,54 @@
             const opt = {
                 margin: [5, 5, 5, 5],
                 filename: `보고서.pdf`,
-                image: { type: 'jpeg', quality: 0.8 }, // 전송 속도를 위해 압축률 상승
-                html2canvas: { scale: 1.5, useCORS: true }, // 모바일 전송 속도 최적화
+                image: { type: 'jpeg', quality: 0.8 }, 
+                html2canvas: { scale: 1.5, useCORS: true }, 
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // PDF를 Base64 문자열(암호문)로 변환
             const pdfBase64String = await html2pdf().set(opt).from(element).output('datauristring');
             element.style.display = 'none'; 
-            
-            // "data:application/pdf;base64," 뒷부분의 순수 데이터만 추출
             const base64Data = pdfBase64String.split(',')[1];
 
-            // [B] 구글 서버로 데이터 발사
-            btn.innerText = "⏳ 2/2: 구글 서버로 발송 중 (약 5~10초)...";
+            // 🌟 [B] 완료확인서(f3) 암호문으로 변환
+            let certBase64Data = "";
+            let certFileName = "";
+            const f3 = document.getElementById('f3');
+            if (f3.files && f3.files.length > 0) {
+                const certFile = f3.files[0];
+                const ext = certFile.name.split('.').pop() || 'jpg';
+                certFileName = `완료확인서_${pendingData.dong}동_${pendingData.ho}호.${ext}`;
+                
+                certBase64Data = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+                    reader.readAsDataURL(certFile);
+                });
+            }
+
+            // [C] 구글 서버로 데이터 발사
+            btn.innerText = "⏳ 2/2: 구글 서버 발송 중 (약 5~10초)...";
             btn.style.background = "#e67e22";
 
             const payload = {
                 record: pendingData,
                 pdfBase64: base64Data,
+                certBase64: certBase64Data, // 추가된 완료확인서 데이터
+                certName: certFileName,     // 추가된 완료확인서 이름
                 email: email
             };
 
             const response = await fetch(MY_GAS_URL, {
                 method: 'POST',
-                // 서버 CORS 에러 방지를 위해 text/plain 속성 사용 (매우 중요)
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             });
 
             const result = await response.json();
 
-            // [C] 완료 처리
+            // [D] 완료 처리
             if(result.result === 'success') {
-                alert(`✅ 완료!\n1. 구글 시트에 기록되었습니다.\n2. [${email}]로 PDF가 발송되었습니다.`);
+                alert(`✅ 완료!\n1. 구글 시트에 기록되었습니다.\n2. [${email}]로 보고서와 완료확인서가 발송되었습니다.`);
                 
                 const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho && item.desc === pendingData.desc);
                 if(!exists) savedList.push(pendingData);
@@ -357,7 +373,7 @@
             }
 
         } catch(e) {
-            alert("❌ 통신 오류: 인터넷 연결이 불안정하거나 데이터가 너무 큽니다.\n에러내용: " + e.message);
+            alert("❌ 통신 오류: 인터넷 연결이 불안정하거나 사진 용량이 너무 큽니다.\n" + e.message);
         }
 
         // 버튼 상태 원상복구
@@ -398,7 +414,7 @@
             document.getElementById(id).value = '';
             document.getElementById(id).classList.remove('filled');
         });
-        [1,2].forEach(i => {
+        [1,2,3].forEach(i => { // 🌟 3칸 모두 초기화되도록 수정
             document.getElementById('p'+i).style.display = 'none';
             document.getElementById('t'+i).style.display = 'block';
             document.getElementById('f'+i).value = '';
