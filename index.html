@@ -41,7 +41,6 @@
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
-        /* PDF 템플릿 CSS */
         #pdf-template { 
             display: none; width: 794px; height: 1122px; padding: 30px 40px; 
             background: white; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; 
@@ -61,7 +60,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 시스템 V17.4</span>
+    <span>(주)METRO R&S 현장관리 시스템 V18.0</span>
 </header>
 
 <div class="container">
@@ -92,14 +91,14 @@
         </div>
         
         <div class="photo-area">
-            <div class="photo-box" onclick="document.getElementById('f1').click()"><span id="t1">작업 전📷</span><img id="p1" class="preview-img"><input type="file" id="f1" hidden accept="image/*" onchange="view(this,'p1','t1')"></div>
-            <div class="photo-box" onclick="document.getElementById('f2').click()"><span id="t2">작업 후📷</span><img id="p2" class="preview-img"><input type="file" id="f2" hidden accept="image/*" onchange="view(this,'p2','t2')"></div>
+            <div class="photo-box" onclick="document.getElementById('f1').click()"><span id="t1">작업 전📷</span><img id="p1" class="preview-img"><input type="file" id="f1" hidden accept="image/*" capture="environment" onchange="view(this,'p1','t1')"></div>
+            <div class="photo-box" onclick="document.getElementById('f2').click()"><span id="t2">작업 후📷</span><img id="p2" class="preview-img"><input type="file" id="f2" hidden accept="image/*" capture="environment" onchange="view(this,'p2','t2')"></div>
             <div class="photo-box" onclick="document.getElementById('f3').click()"><span id="t3">완료확인서📋</span><img id="p3" class="preview-img"><input type="file" id="f3" hidden accept="image/*" onchange="view(this,'p3','t3')"></div>
         </div>
 
         <div class="btn-group">
             <button class="btn-save" onclick="saveLocal()">임시 저장</button>
-            <button class="btn-send" onclick="sendToGoogleServer()">최종 전송 (시트기록+이메일)</button>
+            <button class="btn-send" onclick="sendToGoogleServer()">최종 전송 (기록+이메일)</button>
         </div>
     </div>
 
@@ -132,7 +131,6 @@
 </div>
 
 <script>
-    // 🌟 선생님의 구글 서버 주소
     const MY_GAS_URL = "https://script.google.com/macros/s/AKfycbzAZ2rx-msOt_LZ1CXtxW17IWLf7uf9k7vZFQsYF9fk3m4xUlRZL5IqiNAQ-hKSSzHD/exec";
 
     let cloudDB = {}; 
@@ -160,24 +158,24 @@
 
     async function fetchCloudDB() {
         const select = document.getElementById('db-sheet');
+        const btnSend = document.querySelector('.btn-send');
         select.innerHTML = '<option value="">⏳ DB 다운로드 중...</option>';
         try {
             const response = await fetch(MY_GAS_URL);
             const json = await response.json();
-            
             if(json.result === 'success') {
                 cloudDB = json.data;
                 const sheetNames = Object.keys(cloudDB);
-                if(sheetNames.length === 0) {
-                    select.innerHTML = '<option value="">⚠️ 데이터가 없습니다.</option>';
-                    return;
-                }
+                if(sheetNames.length === 0) { select.innerHTML = '<option value="">⚠️ 데이터가 없습니다.</option>'; return; }
                 select.innerHTML = '<option value="">📑 공종을 선택하세요</option>';
-                sheetNames.forEach(name => {
-                    select.innerHTML += `<option value="${name}">${name} (데이터 ${cloudDB[name].length}건)</option>`;
-                });
+                sheetNames.forEach(name => { select.innerHTML += `<option value="${name}">${name} (데이터 ${cloudDB[name].length}건)</option>`; });
+                btnSend.innerText = "최종 전송 (기록+이메일)"; btnSend.disabled = false; btnSend.style.background = "var(--share)";
             } else { select.innerHTML = '<option value="">❌ DB 연동 실패</option>'; }
-        } catch (error) { select.innerHTML = '<option value="">❌ 인터넷 연결을 확인하세요</option>'; }
+        } catch (error) { 
+            select.innerHTML = '<option value="">⛔ 서버 점검 중입니다 (작업 불가)</option>';
+            btnSend.innerText = "⛔ 서버 점검 중 (전송 불가)"; btnSend.disabled = true; btnSend.style.background = "#7f8c8d";
+            alert("⚠️ 안내: 현재 시스템 점검 중입니다.\n\n관리자가 서버를 점검하고 있습니다.\n완료 후 다시 접속해 주세요."); 
+        }
     }
 
     function searchAndFill(searchNo) {
@@ -197,7 +195,57 @@
         fields.forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).classList.remove('filled'); });
     }
 
-    // 🌟 V17.3 핵심 개선: 1번, 2번, 3번 모든 사진을 선택 즉시 다이어트(압축) 시킵니다!
+    // 🌟 V18.0 핵심: 사진에 정보 워터마크를 합성하는 함수
+    function addWatermark(imgObj, data) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 1. 이미지 리사이징 (해상도 통일)
+        const MAX_SIZE = 1200; let w = imgObj.width; let h = imgObj.height;
+        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+        canvas.width = w; canvas.height = h;
+        ctx.drawImage(imgObj, 0, 0, w, h);
+
+        // 2. 워터마크 박스 그리기 (왼쪽 하단)
+        const boxWidth = w * 0.5; // 너비: 사진의 50%
+        const boxHeight = h * 0.22; // 높이: 사진의 22%
+        const x = 20; const y = h - boxHeight - 20; // 위치: 왼쪽 하단 여백 20px
+        
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)"; // 반투명 흰색 배경
+        ctx.fillRect(x, y, boxWidth, boxHeight);
+        ctx.strokeStyle = "#ccc"; ctx.lineWidth = 2; ctx.strokeRect(x, y, boxWidth, boxHeight); // 테두리
+
+        // 3. 텍스트 그리기
+        const fontSize = Math.max(14, Math.floor(h * 0.025)); // 폰트 크기 자동 조절
+        ctx.font = `bold ${fontSize}px 'Pretendard', sans-serif`;
+        ctx.fillStyle = "black";
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        
+        const lineHeight = boxHeight / 5; // 5줄 간격
+        const paddingX = fontSize; // 텍스트 여백
+        const labels = ["현 장", "위 치", "내 용", "공 정", "일 자"];
+        const values = [
+            data.site || "",
+            (data.dong && data.ho) ? `${data.dong}동 ${data.ho}호` : "",
+            data.desc || "",
+            data.work || "",
+            data.date || ""
+        ];
+
+        for(let i=0; i<5; i++) {
+            let currentY = y + (lineHeight * i) + (lineHeight / 2);
+            ctx.fillText(labels[i], x + paddingX, currentY); // 라벨
+            // 구분선
+            ctx.beginPath(); ctx.moveTo(x + boxWidth*0.3, y + (lineHeight * i)); ctx.lineTo(x + boxWidth*0.3, y + (lineHeight * (i+1))); ctx.stroke();
+            if(i < 4) { ctx.beginPath(); ctx.moveTo(x, y + (lineHeight * (i+1))); ctx.lineTo(x + boxWidth, y + (lineHeight * (i+1))); ctx.stroke(); }
+            // 값
+            ctx.fillText(values[i], x + boxWidth*0.3 + paddingX, currentY);
+        }
+        
+        return canvas.toDataURL('image/jpeg', 0.9); // 합성된 이미지 반환
+    }
+
+    // 🌟 V18.0 수정: 작업전/후 사진에 워터마크 적용
     function view(input, pId, tId) {
         if(input.files && input.files[0]){
             const file = input.files[0];
@@ -205,22 +253,24 @@
             reader.onload = function(e) {
                 const imgObj = new Image();
                 imgObj.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let w = imgObj.width;
-                    let h = imgObj.height;
-                    const MAX_SIZE = 800; // 해상도 800px 강제 제한 (PDF 화질 유지 & 용량 1/20 축소)
-                    
-                    if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } 
-                    else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
-                    
-                    canvas.width = w; canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(imgObj, 0, 0, w, h);
-                    
-                    const compressedSrc = canvas.toDataURL('image/jpeg', 0.8);
+                    let finalSrc = "";
+                    // 🌟 p1(작업전), p2(작업후)일 때만 워터마크 합성!
+                    if (pId === 'p1' || pId === 'p2') {
+                        const currentData = getCurrentData(); // 현재 입력된 정보 가져오기
+                        finalSrc = addWatermark(imgObj, currentData);
+                    } else {
+                        // 완료확인서(p3)는 워터마크 없이 단순 압축만 진행 (기존 로직)
+                        const canvas = document.createElement('canvas');
+                        let w = imgObj.width; let h = imgObj.height; const MAX_SIZE = 800;
+                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(imgObj, 0, 0, w, h);
+                        finalSrc = canvas.toDataURL('image/jpeg', 0.8);
+                    }
                     
                     const img = document.getElementById(pId);
-                    img.src = compressedSrc;
+                    img.src = finalSrc;
                     img.style.display = 'block';
                     document.getElementById(tId).style.display = 'none';
                 };
@@ -287,8 +337,7 @@
         btn.disabled = true;
         btn.style.background = "#7f8c8d";
 
- try {
-            // --- 여기서부터 ---
+        try {
             document.getElementById('pdf-date').innerText = pendingData.date;
             document.getElementById('pdf-contractor').innerText = pendingData.contractor || "-";
             document.getElementById('pdf-site').innerText = pendingData.site || "-";
@@ -297,7 +346,6 @@
             document.getElementById('pdf-work').innerText = pendingData.work || "-";
             document.getElementById('pdf-type').innerText = pendingData.type || "-";
             document.getElementById('pdf-desc').innerText = pendingData.desc || "-";
-            // --- 여기까지 교체 ---
             
             const emptyPx = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
             document.getElementById('pdf-img1').src = document.getElementById('p1').src || emptyPx;
@@ -318,7 +366,6 @@
             element.style.display = 'none'; 
             const base64Data = pdfBase64String.split(',')[1];
 
-            // 🌟 f3(완료확인서)는 이미 view 함수에서 압축되었으므로 바로 가져옵니다.
             let certBase64Data = "";
             let certFileName = "";
             const f3 = document.getElementById('f3');
@@ -354,7 +401,6 @@
                 alert("⚠️ 서버 오류가 발생했습니다.\n" + result.message); 
             }
         } catch(e) { 
-            // 🌟 상세 에러 메시지 알림 추가 (서버 접근 권한 문제인지 파악 가능)
             alert("❌ 전송 실패!\n원인: " + e.message + "\n\n💡해결 팁: 구글 앱스 스크립트 '배포 관리'에서 액세스 권한이 [모든 사용자]로 되어 있는지 꼭 확인하세요!"); 
         }
 
@@ -384,5 +430,3 @@
 </script>
 </body>
 </html>
-
-
