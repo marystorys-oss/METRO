@@ -60,7 +60,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 현장관리 시스템 V18.0</span>
+    <span>(주)METRO R&S 시스템 V18.1</span>
 </header>
 
 <div class="container">
@@ -195,57 +195,54 @@
         fields.forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).classList.remove('filled'); });
     }
 
-    // 🌟 V18.0 핵심: 사진에 정보 워터마크를 합성하는 함수
-    function addWatermark(imgObj, data) {
+    // 🌟 V18.1 핵심: 워터마크 함수가 어떤 사진인지(pId) 알 수 있게 수정
+    function addWatermark(imgObj, data, pId) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        // 1. 이미지 리사이징 (해상도 통일)
         const MAX_SIZE = 1200; let w = imgObj.width; let h = imgObj.height;
         if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
         canvas.width = w; canvas.height = h;
         ctx.drawImage(imgObj, 0, 0, w, h);
 
-        // 2. 워터마크 박스 그리기 (왼쪽 하단)
-        const boxWidth = w * 0.5; // 너비: 사진의 50%
-        const boxHeight = h * 0.22; // 높이: 사진의 22%
-        const x = 20; const y = h - boxHeight - 20; // 위치: 왼쪽 하단 여백 20px
+        const boxWidth = w * 0.5; const boxHeight = h * 0.22; const x = 20; const y = h - boxHeight - 20;
         
-        ctx.fillStyle = "rgba(255, 255, 255, 0.85)"; // 반투명 흰색 배경
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
         ctx.fillRect(x, y, boxWidth, boxHeight);
-        ctx.strokeStyle = "#ccc"; ctx.lineWidth = 2; ctx.strokeRect(x, y, boxWidth, boxHeight); // 테두리
+        ctx.strokeStyle = "#ccc"; ctx.lineWidth = 2; ctx.strokeRect(x, y, boxWidth, boxHeight);
 
-        // 3. 텍스트 그리기
-        const fontSize = Math.max(14, Math.floor(h * 0.025)); // 폰트 크기 자동 조절
+        const fontSize = Math.max(14, Math.floor(h * 0.025));
         ctx.font = `bold ${fontSize}px 'Pretendard', sans-serif`;
         ctx.fillStyle = "black";
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         
-        const lineHeight = boxHeight / 5; // 5줄 간격
-        const paddingX = fontSize; // 텍스트 여백
+        const lineHeight = boxHeight / 5; const paddingX = fontSize;
+        
+        // 🌟 여기가 핵심! pId에 따라 내용 뒤에 꼬리표를 붙임
+        let descSuffix = "";
+        if (pId === 'p1') descSuffix = " - [전]";
+        else if (pId === 'p2') descSuffix = " - [후]";
+
         const labels = ["현 장", "위 치", "내 용", "공 정", "일 자"];
         const values = [
             data.site || "",
             (data.dong && data.ho) ? `${data.dong}동 ${data.ho}호` : "",
-            data.desc || "",
+            (data.desc || "") + descSuffix, // 👈 내용 뒤에 꼬리표 추가
             data.work || "",
             data.date || ""
         ];
 
         for(let i=0; i<5; i++) {
             let currentY = y + (lineHeight * i) + (lineHeight / 2);
-            ctx.fillText(labels[i], x + paddingX, currentY); // 라벨
-            // 구분선
+            ctx.fillText(labels[i], x + paddingX, currentY);
             ctx.beginPath(); ctx.moveTo(x + boxWidth*0.3, y + (lineHeight * i)); ctx.lineTo(x + boxWidth*0.3, y + (lineHeight * (i+1))); ctx.stroke();
             if(i < 4) { ctx.beginPath(); ctx.moveTo(x, y + (lineHeight * (i+1))); ctx.lineTo(x + boxWidth, y + (lineHeight * (i+1))); ctx.stroke(); }
-            // 값
             ctx.fillText(values[i], x + boxWidth*0.3 + paddingX, currentY);
         }
         
-        return canvas.toDataURL('image/jpeg', 0.9); // 합성된 이미지 반환
+        return canvas.toDataURL('image/jpeg', 0.9);
     }
 
-    // 🌟 V18.0 수정: 작업전/후 사진에 워터마크 적용
     function view(input, pId, tId) {
         if(input.files && input.files[0]){
             const file = input.files[0];
@@ -254,12 +251,11 @@
                 const imgObj = new Image();
                 imgObj.onload = function() {
                     let finalSrc = "";
-                    // 🌟 p1(작업전), p2(작업후)일 때만 워터마크 합성!
                     if (pId === 'p1' || pId === 'p2') {
-                        const currentData = getCurrentData(); // 현재 입력된 정보 가져오기
-                        finalSrc = addWatermark(imgObj, currentData);
+                        const currentData = getCurrentData();
+                        // 🌟 addWatermark 함수에 어떤 사진인지(pId) 알려줌
+                        finalSrc = addWatermark(imgObj, currentData, pId);
                     } else {
-                        // 완료확인서(p3)는 워터마크 없이 단순 압축만 진행 (기존 로직)
                         const canvas = document.createElement('canvas');
                         let w = imgObj.width; let h = imgObj.height; const MAX_SIZE = 800;
                         if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
